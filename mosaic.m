@@ -1,0 +1,107 @@
+%% Simpler Photomosaic  -> downsampling of the original image
+%% https://en.wikipedia.org/wiki/Photographic_mosaic
+%% each tile of the original image is reduced to a single color
+%% each library image is reduced to a single color
+%% macth each tile with the image hose average color matches it
+
+clc; clear; close all;
+
+%% imagem a ser transformada
+target_img = imread('img/flores.jpg');  
+target_img = im2double(target_img);
+[rows, cols, ~] = size(target_img);
+
+tile_size = 10; %% ?
+tile_rows = floor(rows / tile_size);
+tile_cols = floor(cols / tile_size);
+target_colors = zeros(tile_rows, tile_cols, 3);
+
+%% media de cor para cada bloco da imagem original
+for y = 1:tile_rows
+    for x = 1:tile_cols
+        row_start = (y-1)*tile_size+1;
+        col_start = (x-1)*tile_size+1;
+        tile = target_img(row_start : y*tile_size, ... row
+            col_start: x*tile_size, ... column
+            :);
+            
+        %% media dos canais do bloco
+        r = mean(tile(:,:,1),'all');
+        g = mean(tile(:,:,2),'all');
+        b = mean(tile(:,:,3),'all');
+
+        target_colors(y, x, :) = squeeze([r,g,b]); 
+    end
+end
+
+%% imagem recontruida com a cor média de cada bloco
+solid_colors_img = zeros(tile_rows * tile_size, tile_cols * tile_size, 3);
+
+for y = 1:tile_rows
+    for x = 1:tile_cols
+        color = squeeze(target_colors(y, x, :));
+        row_start = (y-1)*tile_size + 1;
+        col_start = (x-1)*tile_size + 1;
+        solid_colors_img(row_start: y*tile_size, ... rows
+            col_start: x*tile_size, ... cols
+            :) = repmat(reshape(color, 1,1,3), tile_size, tile_size); % preencher todo bloco com a cor solida
+    end
+end
+
+imwrite(solid_colors_img, 'img/original_solid_colors.jpg');
+
+%% conjunto de imagens e respectivas cores
+img_files = imageDatastore('flowers_200', FileExtensions={'.jpg'}, IncludeSubfolders = false);
+num_imgs = numel(img_files.Files);
+imgs_colors = zeros(num_imgs, 3);
+
+for i = 1:num_imgs
+    img = readimage(img_files,i);
+    img = im2double(img);  
+
+    %% media dos canais da imagem
+    r = mean(img(:,:,1),'all');
+    g = mean(img(:,:,2),'all');
+    b = mean(img(:,:,3),'all');
+
+    imgs_colors(i, :) = squeeze([r,g,b]); 
+end
+
+%% melhor match
+match_index = zeros(tile_rows, tile_cols);
+
+for y = 1:tile_rows
+    for x = 1:tile_cols
+        tile_color = squeeze(target_colors(y, x, :))'; % transposto
+        diff = imgs_colors - tile_color;
+        distances = sum(diff.^2, 2);  
+        [~, best_idx] = min(distances);
+        match_index(y, x) = best_idx;
+    end
+end
+
+%% criar mosaico com os melhores matches
+mosaic_img = zeros(tile_rows * tile_size, tile_cols * tile_size, 3);
+
+for y = 1:tile_rows
+    for x = 1:tile_cols
+        idx = match_index(y, x);
+        lib_img = readimage(img_files,idx);
+        lib_img = im2double(imresize(lib_img, [tile_size, tile_size]));  
+        
+        row_start = (y-1)*tile_size + 1;
+        col_start = (x-1)*tile_size + 1;
+        mosaic_img(row_start: y*tile_size, ... rows
+            col_start: x*tile_size, ... cols
+            :) = lib_img;
+    end
+end
+
+%% plot 
+
+imwrite(mosaic_img, 'img/photomosaic_result.jpg');
+
+figure;
+subplot(1, 2, 1); imshow(target_img); title('Original Image')
+subplot(1, 2, 2); imshow(mosaic_img); title('Photomosaic');
+
