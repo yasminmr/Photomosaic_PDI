@@ -13,7 +13,7 @@ target_img = imread('img/flores.jpg');
 target_img = im2double(target_img);
 [rows, cols, ~] = size(target_img);
 
-tile_size = 10; %% tamanho do tile
+tile_size = 10; %% tamanho dos tiles
 tile_rows = floor(rows / tile_size);
 tile_cols = floor(cols / tile_size);
 target_colors = zeros(tile_rows, tile_cols, 3);
@@ -38,9 +38,11 @@ for i = 1:num_imgs
     imgs_colors(i, :) = squeeze([r,g,b]); 
 end
 
-mosaic_img = zeros(tile_rows * tile_size, tile_cols * tile_size, 3);
+%% percorrer cada bloco
+tile_usage_map = zeros(tile_rows, tile_cols);
+mosaic_img = zeros(size(target_img));
+n_vizinhos = 2; % numero de tiles de distancia
 
-%% passar por cada tile
 for y = 1:tile_rows
     for x = 1:tile_cols
         row_start = (y-1)*tile_size+1;
@@ -49,34 +51,50 @@ for y = 1:tile_rows
             col_start: x*tile_size, ... column
             :);
             
-        %% media dos canais do bloco da imagem original
+        %% media dos canais do bloco
         r = mean(tile(:,:,1),'all');
         g = mean(tile(:,:,2),'all');
         b = mean(tile(:,:,3),'all');
 
         target_colors(y, x, :) = squeeze([r,g,b]); 
         
-        %% melhor match
+        %% cores medias das imagens da biblioteca
         tile_color = squeeze(target_colors(y, x, :))'; % transposto
         diff = imgs_colors - tile_color;
-        distances = sum(diff.^2, 2);  
-        [~, best_idx] = min(distances);
+        distances = sqrt(sum(diff.^2, 2));  
+        [sorted_dist, sorted_id] = sort(distances);
+
+        %% verifica se ja foi usado vizinhança 5x5
+        closest_id = -1;
+        for k = 1:num_imgs
+            id = sorted_id(k);
+            
+            if isempty(find(tile_usage_map(max(y-n_vizinhos,1):min(y+n_vizinhos,tile_rows), ...
+                    max(x-n_vizinhos,1):min(x+n_vizinhos,tile_cols)) == id, 1))
+                closest_id = id;
+                break;
+            end
+        end
         
-        %% criar mosaico substituindo o tile
-        idx = match_index(y, x);
-        lib_img = readimage(img_files,idx);
-        lib_img = im2double(imresize(lib_img, [tile_size, tile_size]));  
+        if closest_id == -1
+            closest_id = sorted_indices(1);
+        end
         
+        tile_usage_map(y,x) = closest_id;
+        
+        %% substitui o bloco
+        lib_img = image_set{closest_id};
         row_start = (y-1)*tile_size + 1;
         col_start = (x-1)*tile_size + 1;
         mosaic_img(row_start: y*tile_size, ... rows
             col_start: x*tile_size, ... cols
             :) = lib_img;
+
     end
 end
 
 %% plot 
-imwrite(mosaic_img, 'img/photomosaic_result.jpg');
+imwrite(mosaic_img, 'img/photomosaic_opt_result.jpg');
 
 figure;
 subplot(1, 2, 1); imshow(target_img); title('Original Image')
