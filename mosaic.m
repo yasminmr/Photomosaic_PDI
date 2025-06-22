@@ -38,9 +38,11 @@ for i = 1:num_imgs
     imgs_colors(i, :) = squeeze([r,g,b]); 
 end
 
-mosaic_img = zeros(tile_rows * tile_size, tile_cols * tile_size, 3);
-
 %% passar por cada tile
+
+mosaic_img = zeros(tile_rows * tile_size, tile_cols * tile_size, 3);
+match_index = zeros(tile_rows, tile_cols);
+
 for y = 1:tile_rows
     for x = 1:tile_cols
         row_start = (y-1)*tile_size+1;
@@ -61,12 +63,9 @@ for y = 1:tile_rows
         diff = imgs_colors - tile_color;
         distances = sum(diff.^2, 2);  
         [~, best_idx] = min(distances);
-        
+        match_index(y,x) = best_idx;
         %% criar mosaico substituindo o tile
-        idx = match_index(y, x);
-        lib_img = readimage(img_files,idx);
-        lib_img = im2double(imresize(lib_img, [tile_size, tile_size]));  
-        
+        lib_img = image_set{best_idx};        
         row_start = (y-1)*tile_size + 1;
         col_start = (x-1)*tile_size + 1;
         mosaic_img(row_start: y*tile_size, ... rows
@@ -87,7 +86,7 @@ elapsed_time = toc;
 fprintf('Tempo de execução: %.2f segundos\n', elapsed_time);
 
 %% diferença cores
-dif_colors = double(target_img) - double(resize(mosaic_img,[rows,cols]));
+dif_colors = double(target_img) - double(mosaic_img);
 similarity = mean(abs(dif_colors(:)));
 fprintf('Diferença média de cor: %.2f\n', similarity);
 

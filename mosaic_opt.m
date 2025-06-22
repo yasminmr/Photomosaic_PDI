@@ -2,7 +2,9 @@
 %% https://en.wikipedia.org/wiki/Photographic_mosaic
 %% each tile of the original image is reduced to a single color
 %% each library image is reduced to a single color
-%% macth each tile with the image hose average color matches it
+%% macth each tile with the image hose average color matches it, if it's not used by its neighbors
+%% 
+
 
 clc; clear; close all;
 
@@ -42,6 +44,7 @@ end
 tile_usage_map = zeros(tile_rows, tile_cols);
 mosaic_img = zeros(size(target_img));
 n_vizinhos = 2; % numero de tiles de distancia
+match_index = zeros(tile_rows, tile_cols);
 
 for y = 1:tile_rows
     for x = 1:tile_cols
@@ -81,7 +84,7 @@ for y = 1:tile_rows
         end
         
         tile_usage_map(y,x) = closest_id;
-        
+        match_index(y,x) = closest_id;
         %% substitui o bloco
         lib_img = image_set{closest_id};
         row_start = (y-1)*tile_size + 1;
@@ -105,7 +108,7 @@ elapsed_time = toc;
 fprintf('Tempo de execução: %.2f segundos\n', elapsed_time);
 
 %% diferença cores
-dif_colors = double(target_img) - double(resize(mosaic_img,[rows,cols]));
+dif_colors = double(target_img) - double(mosaic_img);
 similarity = mean(abs(dif_colors(:)));
 fprintf('Diferença média de cor: %.2f\n', similarity);
 
