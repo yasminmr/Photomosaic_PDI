@@ -3,8 +3,6 @@
 %% each tile of the original image is reduced to a single color
 %% each library image is reduced to a single color
 %% macth each tile with the image hose average color matches it, if it's not used by its neighbors
-%% 
-
 
 clc; clear; close all;
 
@@ -29,7 +27,7 @@ imgs_colors = zeros(num_imgs, 3);
 for i = 1:num_imgs
     img = image_set{i};
     img = im2double(img);
-    img = imresize(img, [tile_size, tile_size]); % Redimensionar para o tamanho do bloco
+    img = imresize(img, [tile_size, tile_size]); % redimensionar para o tamanho do bloco
     image_set{i} = img;
 
     %% media dos canais da imagem
@@ -41,7 +39,6 @@ for i = 1:num_imgs
 end
 
 %% percorrer cada bloco
-tile_usage_map = zeros(tile_rows, tile_cols);
 mosaic_img = zeros(size(target_img));
 n_vizinhos = 2; % numero de tiles de distancia
 match_index = zeros(tile_rows, tile_cols);
@@ -62,7 +59,7 @@ for y = 1:tile_rows
         target_colors(y, x, :) = squeeze([r,g,b]); 
         
         %% cores medias das imagens da biblioteca
-        tile_color = squeeze(target_colors(y, x, :))'; % transposto
+        tile_color = squeeze(target_colors(y, x, :))'; %transposto
         diff = imgs_colors - tile_color;
         distances = sqrt(sum(diff.^2, 2));  
         [sorted_dist, sorted_id] = sort(distances);
@@ -72,7 +69,7 @@ for y = 1:tile_rows
         for k = 1:num_imgs
             id = sorted_id(k);
             
-            if isempty(find(tile_usage_map(max(y-n_vizinhos,1):min(y+n_vizinhos,tile_rows), ...
+            if isempty(find(match_index(max(y-n_vizinhos,1):min(y+n_vizinhos,tile_rows), ...
                     max(x-n_vizinhos,1):min(x+n_vizinhos,tile_cols)) == id, 1))
                 closest_id = id;
                 break;
@@ -83,8 +80,8 @@ for y = 1:tile_rows
             closest_id = sorted_indices(1);
         end
         
-        tile_usage_map(y,x) = closest_id;
         match_index(y,x) = closest_id;
+
         %% substitui o bloco
         lib_img = image_set{closest_id};
         row_start = (y-1)*tile_size + 1;
@@ -106,11 +103,6 @@ subplot(1, 2, 2); imshow(mosaic_img); title('Photomosaic');
 %% tempo
 elapsed_time = toc;
 fprintf('Tempo de execução: %.2f segundos\n', elapsed_time);
-
-%% diferença cores
-dif_colors = double(target_img) - double(mosaic_img);
-similarity = mean(abs(dif_colors(:)));
-fprintf('Diferença média de cor: %.2f\n', similarity);
 
 %% Qtd de tiles unicos usados
 unique_tiles = unique(match_index(:));

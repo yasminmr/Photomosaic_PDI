@@ -9,7 +9,7 @@ clc; clear; close all;
 tic; %% tempo
 
 %% imagem a ser transformada
-target_img = imread('img/flores.jpg');  
+target_img = imread('img/boa-praca.jpg');  
 target_img = im2double(target_img);
 [rows, cols, ~] = size(target_img);
 
@@ -19,7 +19,7 @@ tile_cols = floor(cols / tile_size);
 target_colors = zeros(tile_rows, tile_cols, 3);
 
 %% conjunto de imagens e respectivas cores
-img_files = imageDatastore('flowers_200', FileExtensions={'.jpg'}, IncludeSubfolders = false);
+img_files = imageDatastore('flowers', FileExtensions={'.jpg'}, IncludeSubfolders = false);
 num_imgs = numel(img_files.Files);
 image_set = readall(img_files);
 imgs_colors = zeros(num_imgs, 3);
@@ -27,7 +27,7 @@ imgs_colors = zeros(num_imgs, 3);
 for i = 1:num_imgs
     img = image_set{i};
     img = im2double(img);
-    img = imresize(img, [tile_size, tile_size]); % Redimensionar para o tamanho do bloco
+    img = imresize(img, [tile_size, tile_size]); % redimensionar para o tamanho do bloco
     image_set{i} = img;
 
     %% media dos canais da imagem
@@ -59,22 +59,17 @@ for y = 1:tile_rows
         target_colors(y, x, :) = squeeze([r,g,b]); 
         
         %% cores medias das imagens da biblioteca
-        tile_color = squeeze(target_colors(y, x, :))'; % transposto
+        tile_color = squeeze(target_colors(y, x, :))'; %transposto
         diff = imgs_colors - tile_color;
         distances = sqrt(sum(diff.^2, 2));  
         [sorted_dist, sorted_id] = sort(distances);
 
-        %% pega uma imagem aleatoria entre as 10 mais proximas, ignorando a já usada na vizinhança 5x5
+        %% pega uma imagem aleatoria entre as 10 mais proximas, ignorando a já usada na vizinhança 
         top_closest = sorted_id(1:10);
-        closest_id = -1;
-
-        row_min = max(y-n_vizinhos,1);
-        row_max = min(y+n_vizinhos, tile_rows);
-        col_min = max(x-n_vizinhos,1);
-        col_max = min(x+n_vizinhos, tile_cols);
         
         used_ids = unique(match_index(max(y-n_vizinhos,1):min(y+n_vizinhos,tile_rows), ...
                     max(x-n_vizinhos,1):min(x+n_vizinhos,tile_cols)));
+
         top_closest = top_closest(~ismember(top_closest,used_ids));
 
         if isempty(top_closest)
@@ -82,8 +77,6 @@ for y = 1:tile_rows
         else
             closest_id = top_closest(randi(length(top_closest)));
         end
-
-        %% verifica se ja foi usado vizinhança 5x5
         
         match_index(y,x) = closest_id;
 
@@ -99,7 +92,7 @@ for y = 1:tile_rows
 end
 
 %% plot 
-imwrite(mosaic_img, 'img/photomosaic_opt_result.jpg');
+imwrite(mosaic_img, 'img/photomosaic_opt__top_10_result.jpg');
 
 figure;
 subplot(1, 2, 1); imshow(target_img); title('Original Image')
@@ -108,11 +101,6 @@ subplot(1, 2, 2); imshow(mosaic_img); title('Photomosaic');
 %% tempo
 elapsed_time = toc;
 fprintf('Tempo de execução: %.2f segundos\n', elapsed_time);
-
-%% diferença cores
-dif_colors = double(target_img) - double(mosaic_img);
-similarity = mean(abs(dif_colors(:)));
-fprintf('Diferença média de cor: %.2f\n', similarity);
 
 %% Qtd de tiles unicos usados
 unique_tiles = unique(match_index(:));

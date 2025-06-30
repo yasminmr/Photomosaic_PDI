@@ -1,6 +1,7 @@
 %% tranformando os blocos da imagem original em blocos de cor solida
 
 clc; clear; close all;
+
 %% imagem a ser transformada
 target_img = imread('img/flores.jpg');  
 target_img = im2double(target_img);

@@ -9,7 +9,7 @@ clc; clear; close all;
 tic; %% tempo
 
 %% imagem a ser transformada
-target_img = imread('img/flores.jpg');  
+target_img = imread('img/curitiba_noite.jpg');  
 target_img = im2double(target_img);
 [rows, cols, ~] = size(target_img);
 
@@ -19,7 +19,7 @@ tile_cols = floor(cols / tile_size);
 target_colors = zeros(tile_rows, tile_cols, 3);
 
 %% conjunto de imagens e respectivas cores
-img_files = imageDatastore('flowers_200', FileExtensions={'.jpg'}, IncludeSubfolders = false);
+img_files = imageDatastore('flowers', FileExtensions={'.jpg'}, IncludeSubfolders = false);
 num_imgs = numel(img_files.Files);
 image_set = readall(img_files);
 imgs_colors = zeros(num_imgs, 3);
@@ -27,7 +27,7 @@ imgs_colors = zeros(num_imgs, 3);
 for i = 1:num_imgs
     img = image_set{i};
     img = im2double(img);
-    img = imresize(img, [tile_size, tile_size]); % Redimensionar para o tamanho do bloco
+    img = imresize(img, [tile_size, tile_size]); % redimensionar para o tamanho do bloco
     image_set{i} = img;
 
     %% media dos canais da imagem
@@ -59,11 +59,12 @@ for y = 1:tile_rows
         target_colors(y, x, :) = squeeze([r,g,b]); 
         
         %% melhor match
-        tile_color = squeeze(target_colors(y, x, :))'; % transposto
+        tile_color = squeeze(target_colors(y, x, :))'; 
         diff = imgs_colors - tile_color;
         distances = sum(diff.^2, 2);  
         [~, best_idx] = min(distances);
         match_index(y,x) = best_idx;
+        
         %% criar mosaico substituindo o tile
         lib_img = image_set{best_idx};        
         row_start = (y-1)*tile_size + 1;
@@ -84,11 +85,6 @@ subplot(1, 2, 2); imshow(mosaic_img); title('Photomosaic');
 %% tempo
 elapsed_time = toc;
 fprintf('Tempo de execução: %.2f segundos\n', elapsed_time);
-
-%% diferença cores
-dif_colors = double(target_img) - double(mosaic_img);
-similarity = mean(abs(dif_colors(:)));
-fprintf('Diferença média de cor: %.2f\n', similarity);
 
 %% Qtd de tiles unicos usados
 unique_tiles = unique(match_index(:));
