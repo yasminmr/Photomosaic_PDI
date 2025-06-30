@@ -9,7 +9,7 @@ clc; clear; close all;
 tic; %% tempo
 
 %% imagem a ser transformada
-target_img = imread('img/boa-praca.jpg');  
+target_img = imread('img/flores.jpg');  
 target_img = im2double(target_img);
 [rows, cols, ~] = size(target_img);
 
@@ -19,7 +19,7 @@ tile_cols = floor(cols / tile_size);
 target_colors = zeros(tile_rows, tile_cols, 3);
 
 %% conjunto de imagens e respectivas cores
-img_files = imageDatastore('flowers', FileExtensions={'.jpg'}, IncludeSubfolders = false);
+img_files = imageDatastore('flowers_200', FileExtensions={'.jpg'}, IncludeSubfolders = false);
 num_imgs = numel(img_files.Files);
 image_set = readall(img_files);
 imgs_colors = zeros(num_imgs, 3);
